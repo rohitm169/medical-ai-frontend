@@ -15,7 +15,7 @@ const CONFIG = {
       return "http://localhost:5000";
     }
 
-    return "medical-ai-backend-production-7d86.up.railway.app";
+    return 'https://medical-ai-backend-production-7d86.up.railway.app';
   })(),
 
   /* ==================== APP INFO ==================== */
