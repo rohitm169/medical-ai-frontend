@@ -477,9 +477,29 @@
     </footer>
 
     <!-- ==================== SCRIPTS ==================== -->
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/api.js"></script>
+    <!-- ==================== SCRIPTS ==================== -->
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+
+<script>
+// Fix: Attach step buttons after everything loads
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        var btn1 = document.getElementById('nextToStep2');
+        var btn2 = document.getElementById('nextToStep3');
+        var btn3 = document.getElementById('backToStep1');
+        var btn4 = document.getElementById('backToStep2');
+
+        if (btn1) btn1.onclick = function() { handleNextToStep2(); };
+        if (btn2) btn2.onclick = function() { handleNextToStep3(); };
+        if (btn3) btn3.onclick = function() { goToStep(1); };
+        if (btn4) btn4.onclick = function() { goToStep(2); };
+
+        console.log('Step buttons attached!');
+    }, 500);
+});
+</script>
     <!-- ← line ADD  -->
   </body>
 </html>
