@@ -483,9 +483,9 @@
 <script src="js/auth.js"></script>
 
 <script>
-// Fix: Attach step buttons after everything loads
 window.addEventListener('load', function() {
     setTimeout(function() {
+        // Step buttons
         var btn1 = document.getElementById('nextToStep2');
         var btn2 = document.getElementById('nextToStep3');
         var btn3 = document.getElementById('backToStep1');
@@ -496,7 +496,87 @@ window.addEventListener('load', function() {
         if (btn3) btn3.onclick = function() { goToStep(1); };
         if (btn4) btn4.onclick = function() { goToStep(2); };
 
-        console.log('Step buttons attached!');
+        // Register form submit
+        var form = document.getElementById('registerForm');
+        if (form) {
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            };
+        }
+
+        // Register button click
+        var regBtn = document.getElementById('registerBtn');
+        if (regBtn) {
+            regBtn.onclick = function(e) {
+                e.preventDefault();
+
+                var password = document.getElementById('password').value;
+                var confirmPassword = document.getElementById('confirmPassword').value;
+                var agreeTerms = document.getElementById('agreeTerms').checked;
+                var agreeDisclaimer = document.getElementById('agreeDisclaimer').checked;
+
+                // Validation
+                if (!password || password.length < 6) {
+                    alert('Password must be at least 6 characters');
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
+                if (!agreeTerms || !agreeDisclaimer) {
+                    alert('Please agree to terms and disclaimer');
+                    return;
+                }
+
+                // Show loading
+                var btnText = regBtn.querySelector('.btn-text');
+                var btnLoader = regBtn.querySelector('.btn-loader');
+                if (btnText) btnText.style.display = 'none';
+                if (btnLoader) btnLoader.style.display = 'flex';
+                regBtn.disabled = true;
+
+                // Call API
+                fetch(CONFIG.API_BASE_URL + '/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: RegisterState.formData.fullName,
+                        email: RegisterState.formData.email,
+                        password: password,
+                        age: RegisterState.formData.age,
+                        gender: RegisterState.formData.gender
+                    })
+                })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    console.log('Register response:', data);
+
+                    if (data.success && data.token) {
+                        localStorage.setItem('userToken', data.token);
+                        localStorage.setItem('userData', JSON.stringify(data.user));
+                        console.log('Token saved, redirecting...');
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        alert(data.message || 'Registration failed');
+                        if (btnText) btnText.style.display = 'flex';
+                        if (btnLoader) btnLoader.style.display = 'none';
+                        regBtn.disabled = false;
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Register error:', error);
+                    alert('Registration failed. Please try again.');
+                    if (btnText) btnText.style.display = 'flex';
+                    if (btnLoader) btnLoader.style.display = 'none';
+                    regBtn.disabled = false;
+                });
+            };
+        }
+
+        console.log('Step buttons and register attached!');
     }, 500);
 });
 </script>
