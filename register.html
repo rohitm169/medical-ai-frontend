@@ -485,7 +485,8 @@
 <script>
 window.addEventListener('load', function() {
     setTimeout(function() {
-        // Step buttons
+
+        // ==================== STEP BUTTONS ====================
         var btn1 = document.getElementById('nextToStep2');
         var btn2 = document.getElementById('nextToStep3');
         var btn3 = document.getElementById('backToStep1');
@@ -496,7 +497,153 @@ window.addEventListener('load', function() {
         if (btn3) btn3.onclick = function() { goToStep(1); };
         if (btn4) btn4.onclick = function() { goToStep(2); };
 
-        // Register form submit
+
+        // ==================== PASSWORD SHOW/HIDE ====================
+        var togglePass = document.getElementById('togglePassword');
+        var passInput = document.getElementById('password');
+
+        if (togglePass && passInput) {
+            togglePass.onclick = function() {
+                if (passInput.type === 'password') {
+                    passInput.type = 'text';
+                    togglePass.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                } else {
+                    passInput.type = 'password';
+                    togglePass.innerHTML = '<i class="fas fa-eye"></i>';
+                }
+            };
+        }
+
+        var toggleConfirm = document.getElementById('toggleConfirmPassword');
+        var confirmInput = document.getElementById('confirmPassword');
+
+        if (toggleConfirm && confirmInput) {
+            toggleConfirm.onclick = function() {
+                if (confirmInput.type === 'password') {
+                    confirmInput.type = 'text';
+                    toggleConfirm.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                } else {
+                    confirmInput.type = 'password';
+                    toggleConfirm.innerHTML = '<i class="fas fa-eye"></i>';
+                }
+            };
+        }
+
+
+        // ==================== PASSWORD STRENGTH METER ====================
+        if (passInput) {
+            passInput.oninput = function() {
+                var password = this.value;
+
+                // Strength bars
+                var bars = [
+                    document.getElementById('strengthBar1'),
+                    document.getElementById('strengthBar2'),
+                    document.getElementById('strengthBar3'),
+                    document.getElementById('strengthBar4')
+                ];
+                var strengthText = document.getElementById('strengthText');
+
+                // Reset bars
+                bars.forEach(function(bar) {
+                    if (bar) bar.className = 'strength-bar';
+                });
+
+                if (!password) {
+                    if (strengthText) {
+                        strengthText.textContent = 'Password Strength';
+                        strengthText.className = 'strength-text';
+                    }
+                    updateRequirements(password);
+                    return;
+                }
+
+                // Calculate score
+                var score = 0;
+                if (password.length >= 6) score++;
+                if (password.length >= 10) score++;
+                if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+                if (/[0-9]/.test(password)) score++;
+                if (/[^A-Za-z0-9]/.test(password)) score++;
+
+                var level, label, fillCount;
+
+                if (score <= 1) {
+                    level = 'weak'; label = 'Weak'; fillCount = 1;
+                } else if (score === 2) {
+                    level = 'fair'; label = 'Fair'; fillCount = 2;
+                } else if (score === 3) {
+                    level = 'good'; label = 'Good'; fillCount = 3;
+                } else {
+                    level = 'strong'; label = 'Strong'; fillCount = 4;
+                }
+
+                // Update bars
+                bars.forEach(function(bar, index) {
+                    if (bar && index < fillCount) {
+                        bar.className = 'strength-bar ' + level;
+                    }
+                });
+
+                // Update text
+                if (strengthText) {
+                    strengthText.textContent = label;
+                    strengthText.className = 'strength-text ' + level;
+                }
+
+                // Update requirements
+                updateRequirements(password);
+            };
+        }
+
+
+        // ==================== PASSWORD REQUIREMENTS ====================
+        function updateRequirements(password) {
+            var reqs = [
+                { id: 'reqLength', met: password.length >= 6 },
+                { id: 'reqUppercase', met: /[A-Z]/.test(password) },
+                { id: 'reqNumber', met: /[0-9]/.test(password) },
+                { id: 'reqSpecial', met: /[^A-Za-z0-9]/.test(password) }
+            ];
+
+            reqs.forEach(function(req) {
+                var el = document.getElementById(req.id);
+                if (!el) return;
+
+                var icon = el.querySelector('i');
+
+                if (req.met) {
+                    el.classList.add('met');
+                    if (icon) icon.className = 'fas fa-check-circle';
+                } else {
+                    el.classList.remove('met');
+                    if (icon) icon.className = 'fas fa-circle';
+                }
+            });
+        }
+
+
+        // ==================== CONFIRM PASSWORD MATCH ====================
+        if (confirmInput && passInput) {
+            confirmInput.oninput = function() {
+                var errEl = document.getElementById('confirmPasswordError');
+
+                if (this.value && this.value !== passInput.value) {
+                    if (errEl) {
+                        errEl.textContent = 'Passwords do not match';
+                        errEl.style.display = 'flex';
+                    }
+                } else {
+                    if (errEl) {
+                        errEl.textContent = '';
+                        errEl.style.display = 'none';
+                    }
+                }
+            };
+        }
+
+
+        // ==================== FORM SUBMIT PREVENT ====================
         var form = document.getElementById('registerForm');
         if (form) {
             form.onsubmit = function(e) {
@@ -506,7 +653,8 @@ window.addEventListener('load', function() {
             };
         }
 
-        // Register button click
+
+        // ==================== REGISTER BUTTON ====================
         var regBtn = document.getElementById('registerBtn');
         if (regBtn) {
             regBtn.onclick = function(e) {
@@ -517,7 +665,6 @@ window.addEventListener('load', function() {
                 var agreeTerms = document.getElementById('agreeTerms').checked;
                 var agreeDisclaimer = document.getElementById('agreeDisclaimer').checked;
 
-                // Validation
                 if (!password || password.length < 6) {
                     alert('Password must be at least 6 characters');
                     return;
@@ -531,14 +678,12 @@ window.addEventListener('load', function() {
                     return;
                 }
 
-                // Show loading
                 var btnText = regBtn.querySelector('.btn-text');
                 var btnLoader = regBtn.querySelector('.btn-loader');
                 if (btnText) btnText.style.display = 'none';
                 if (btnLoader) btnLoader.style.display = 'flex';
                 regBtn.disabled = true;
 
-                // Call API
                 fetch(CONFIG.API_BASE_URL + '/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -550,14 +695,11 @@ window.addEventListener('load', function() {
                         gender: RegisterState.formData.gender
                     })
                 })
-                .then(function(response) { return response.json(); })
+                .then(function(r) { return r.json(); })
                 .then(function(data) {
-                    console.log('Register response:', data);
-
                     if (data.success && data.token) {
                         localStorage.setItem('userToken', data.token);
                         localStorage.setItem('userData', JSON.stringify(data.user));
-                        console.log('Token saved, redirecting...');
                         window.location.href = 'dashboard.html';
                     } else {
                         alert(data.message || 'Registration failed');
@@ -566,8 +708,7 @@ window.addEventListener('load', function() {
                         regBtn.disabled = false;
                     }
                 })
-                .catch(function(error) {
-                    console.error('Register error:', error);
+                .catch(function(err) {
                     alert('Registration failed. Please try again.');
                     if (btnText) btnText.style.display = 'flex';
                     if (btnLoader) btnLoader.style.display = 'none';
@@ -576,7 +717,7 @@ window.addEventListener('load', function() {
             };
         }
 
-        console.log('Step buttons and register attached!');
+        console.log('All register features attached!');
     }, 500);
 });
 </script>
