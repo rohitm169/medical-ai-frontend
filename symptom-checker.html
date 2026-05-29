@@ -809,56 +809,216 @@
     <script src="js/voice.js"></script>
     <script src="js/imageUpload.js"></script>
     <script src="js/app.js"></script>
-    <script>
+   <script>
 window.addEventListener('load', function() {
     setTimeout(function() {
-        // Fix language selector
-        var langBtn = document.getElementById('symptomLangBtn');
-        var langDropdown = document.getElementById('symptomLangDropdown');
-        var isOpen = false;
 
-        if (langBtn) {
-            langBtn.onclick = function(e) {
-                e.stopPropagation();
-                isOpen = !isOpen;
-                langDropdown.style.display = isOpen ? 'block' : 'none';
+        // ==================== ANALYZE BUTTON FIX ====================
+        var analyzeBtn = document.getElementById('analyzeBtn');
+        if (analyzeBtn) {
+            analyzeBtn.onclick = function(e) {
+                e.preventDefault();
+
+                // Check agreement
+                var agree = document.getElementById('agreeAnalysis');
+                if (!agree || !agree.checked) {
+                    alert('Please agree to the terms before analyzing');
+                    return;
+                }
+
+                // Get symptoms text
+                var symptomsText = '';
+                var textarea = document.getElementById('symptomsText');
+                if (textarea) symptomsText = textarea.value.trim();
+
+                if (symptomsText.length < 10) {
+                    alert('Please describe your symptoms (minimum 10 characters)');
+                    return;
+                }
+
+                // Get patient data
+                var age = document.getElementById('patientAge') ? document.getElementById('patientAge').value : 25;
+                var gender = document.querySelector('input[name="patientGender"]:checked');
+                gender = gender ? gender.value : 'male';
+                var duration = document.getElementById('symptomDuration') ? document.getElementById('symptomDuration').value : '';
+                var notes = document.getElementById('additionalNotes') ? document.getElementById('additionalNotes').value : '';
+                var language = localStorage.getItem('chatLanguage') || 'en';
+
+                // Show loading
+                var btnText = analyzeBtn.querySelector('.btn-text');
+                var btnLoader = analyzeBtn.querySelector('.btn-loader');
+                if (btnText) btnText.style.display = 'none';
+                if (btnLoader) btnLoader.style.display = 'flex';
+                analyzeBtn.disabled = true;
+
+                console.log('Analyzing symptoms...');
+
+                // Call API
+                fetch(CONFIG.API_BASE_URL + '/api/symptoms/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('userToken')
+                    },
+                    body: JSON.stringify({
+                        symptoms_text: symptomsText,
+                        additional_notes: notes,
+                        age: parseInt(age),
+                        gender: gender,
+                        duration: duration,
+                        input_type: 'text',
+                        language: language,
+                        images: [],
+                        image_types: []
+                    })
+                })
+                .then(function(r) {
+                    console.log('Response status:', r.status);
+                    return r.json();
+                })
+                .then(function(data) {
+                    console.log('Analysis result:', data);
+
+                    if (data.success) {
+                        // Save results
+                        var resultsData = {
+                            success: true,
+                            diagnosis: data.diagnosis,
+                            diagnosis_id: data.diagnosis_id,
+                            log_id: data.log_id,
+                            recommended_doctors: data.recommended_doctors,
+                            patient: {
+                                age: parseInt(age),
+                                gender: gender,
+                                duration: duration
+                            },
+                            symptoms_text: symptomsText,
+                            input_methods: ['text'],
+                            language: language,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        localStorage.setItem('latestResults', JSON.stringify(resultsData));
+                        console.log('Results saved, redirecting...');
+
+                        // Redirect to results
+                        window.location.href = 'results.html';
+                    } else {
+                        alert(data.message || 'Analysis failed. Please try again.');
+                        if (btnText) btnText.style.display = 'flex';
+                        if (btnLoader) btnLoader.style.display = 'none';
+                        analyzeBtn.disabled = false;
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Analysis error:', err);
+                    alert('Analysis failed. Please check your connection.');
+                    if (btnText) btnText.style.display = 'flex';
+                    if (btnLoader) btnLoader.style.display = 'none';
+                    analyzeBtn.disabled = false;
+                });
             };
         }
 
-        // Language options
-        var langOptions = document.querySelectorAll('.symptom-lang-option');
-        langOptions.forEach(function(opt) {
-            opt.onclick = function() {
-                var lang = this.dataset.lang;
-                if (typeof AppState !== 'undefined') {
-                    AppState.currentLanguage = lang;
+        // ==================== STEP BUTTONS ====================
+        var btn1 = document.getElementById('step1NextBtn');
+        var btn2 = document.getElementById('step2NextBtn');
+        var btn3 = document.getElementById('step2BackBtn');
+        var btn4 = document.getElementById('step3BackBtn');
+
+        if (btn1) {
+            btn1.onclick = function() {
+                var age = document.getElementById('patientAge').value;
+                var gender = document.querySelector('input[name="patientGender"]:checked');
+
+                if (!age || age < 1 || age > 120) {
+                    alert('Please enter a valid age (1-120)');
+                    return;
                 }
-                localStorage.setItem('chatLanguage', lang);
-
-                // Update UI
-                langOptions.forEach(function(o) { o.classList.remove('active'); });
-                this.classList.add('active');
-
-                var flag = this.querySelector('.lang-flag').textContent;
-                var code = lang.toUpperCase();
-                if (langBtn) {
-                    langBtn.querySelector('.symptom-lang-flag').textContent = flag;
-                    langBtn.querySelector('.symptom-lang-code').textContent = code;
+                if (!gender) {
+                    alert('Please select your gender');
+                    return;
                 }
 
-                langDropdown.style.display = 'none';
-                isOpen = false;
+                document.getElementById('checkerStep1').style.display = 'none';
+                document.getElementById('checkerStep2').style.display = 'block';
+
+                // Update progress
+                document.getElementById('progressStep1').classList.remove('active');
+                document.getElementById('progressStep1').classList.add('completed');
+                document.getElementById('progressStep2').classList.add('active');
+                document.getElementById('progressBar').style.width = '50%';
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             };
-        });
+        }
 
-        // Close dropdown on outside click
-        document.addEventListener('click', function() {
-            if (langDropdown) langDropdown.style.display = 'none';
-            isOpen = false;
-        });
+        if (btn2) {
+            btn2.onclick = function() {
+                var symptoms = document.getElementById('symptomsText').value.trim();
 
-        console.log('Symptom checker extras loaded!');
-    }, 300);
+                if (symptoms.length < 10) {
+                    alert('Please describe your symptoms (minimum 10 characters)');
+                    return;
+                }
+
+                // Update review
+                var reviewAge = document.getElementById('reviewAge');
+                var reviewGender = document.getElementById('reviewGender');
+                var reviewDuration = document.getElementById('reviewDuration');
+                var reviewSymptoms = document.getElementById('reviewSymptoms');
+
+                if (reviewAge) reviewAge.textContent = document.getElementById('patientAge').value;
+                if (reviewGender) {
+                    var g = document.querySelector('input[name="patientGender"]:checked');
+                    reviewGender.textContent = g ? g.value : '--';
+                }
+                if (reviewDuration) reviewDuration.textContent = document.getElementById('symptomDuration').value || 'Not specified';
+                if (reviewSymptoms) reviewSymptoms.textContent = symptoms;
+
+                document.getElementById('checkerStep2').style.display = 'none';
+                document.getElementById('checkerStep3').style.display = 'block';
+
+                // Update progress
+                document.getElementById('progressStep2').classList.remove('active');
+                document.getElementById('progressStep2').classList.add('completed');
+                document.getElementById('progressStep3').classList.add('active');
+                document.getElementById('progressBar').style.width = '100%';
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+        }
+
+        if (btn3) {
+            btn3.onclick = function() {
+                document.getElementById('checkerStep2').style.display = 'none';
+                document.getElementById('checkerStep1').style.display = 'block';
+
+                document.getElementById('progressStep2').classList.remove('active');
+                document.getElementById('progressStep1').classList.remove('completed');
+                document.getElementById('progressStep1').classList.add('active');
+                document.getElementById('progressBar').style.width = '33%';
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+        }
+
+        if (btn4) {
+            btn4.onclick = function() {
+                document.getElementById('checkerStep3').style.display = 'none';
+                document.getElementById('checkerStep2').style.display = 'block';
+
+                document.getElementById('progressStep3').classList.remove('active');
+                document.getElementById('progressStep2').classList.remove('completed');
+                document.getElementById('progressStep2').classList.add('active');
+                document.getElementById('progressBar').style.width = '50%';
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+        }
+
+        console.log('Symptom checker fully loaded!');
+    }, 500);
 });
 </script>
 
