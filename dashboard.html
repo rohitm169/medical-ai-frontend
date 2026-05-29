@@ -721,5 +721,38 @@
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/dashboard.js"></script>
+    <script>
+      window.addEventListener('load', function() {
+    setTimeout(function() {
+        try {
+            var userData = localStorage.getItem('userData');
+            if (userData) {
+                var user = JSON.parse(userData);
+                var name = user.name || user.email || 'User';
+
+                // Update all name elements
+                var topbarName = document.getElementById('topbarUserName');
+                var sidebarName = document.getElementById('sidebarUserName');
+                var greeting = document.getElementById('greetingText');
+
+                if (topbarName) topbarName.textContent = name;
+                if (sidebarName) sidebarName.textContent = name;
+
+                if (greeting) {
+                    var hour = new Date().getHours();
+                    var greet = 'Good morning';
+                    if (hour >= 12 && hour < 17) greet = 'Good afternoon';
+                    else if (hour >= 17) greet = 'Good evening';
+                    greeting.textContent = greet + ', ' + name.split(' ')[0] + '!';
+                }
+
+                console.log('User name set:', name);
+            }
+        } catch(e) {
+            console.error('Name set error:', e);
+        }
+    }, 300);
+});
+    </script>
   </body>
 </html>
